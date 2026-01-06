@@ -1,0 +1,141 @@
+def show_step_tracker(window):
+    """Display step tracker tab with modern design"""
+    tracker_box = Box(window, width="fill", align="top")
+    tracker_box.bg = COLORS['light']
+    
+    # Header card
+    header_card = Box(tracker_box, width="fill", align="top")
+    header_card.bg = COLORS['white']
+    
+    Text(header_card, text="Step Tracker", size=20, color=COLORS['primary'])
+    Text(header_card, text="Monitor your daily activity", size=12, color=COLORS['text_light'])
+    
+    # Spacer
+    Text(tracker_box, text="", size=8)
+    
+    # Input card
+    input_card = Box(tracker_box, width="fill", align="top")
+    input_card.bg = COLORS['white']
+    
+    Text(input_card, text="Log Your Steps", size=16, color=COLORS['primary'])
+    
+    input_form = Box(input_card, layout="grid")
+    Text(input_form, text="Steps:", grid=[0,0])
+    steps_input = TextBox(input_form, grid=[1,0], width=15)
+    
+    log_btn = PushButton(input_form, text="Log Steps", command=lambda: log_steps(steps_input.value), grid=[2,0])
+    log_btn.bg = COLORS['success']
+    log_btn.text_color = COLORS['white']
+    
+    # Spacer
+    Text(tracker_box, text="", size=8)
+    
+    # Analytics card
+    analytics_card = Box(tracker_box, width="fill", align="top")
+    analytics_card.bg = COLORS['white']
+    
+    Text(analytics_card, text="Your Progress", size=16, color=COLORS['primary'])
+    
+    graph_btn = PushButton(analytics_card, text="Show Step Graph", command=Step_Tracker_Graph, width=20)
+    graph_btn.bg = COLORS['accent']
+    graph_btn.text_color = COLORS['white']
+    
+    return tracker_box
+ 
+# Step Tracker Functions - handle step logging and visualization
+def log_steps(steps):
+    """Log user's daily steps to the database with validation"""
+    try:
+        steps_int = int(steps)  # Convert input to integer
+        if steps_int > 20000:
+            error("Error", "You cannot log more than 20,000 steps in a single entry.")  # Reasonable limit
+            return
+        if steps_int < 0:
+            error("Error", "Steps cannot be negative.")
+            return
+        today = datetime.datetime.now().strftime("%Y-%m-%d")  # Current date
+        execute_sql(
+            "INSERT INTO Tracking (T_Steps, T_Date, userID) VALUES (?, ?, ?)",
+            (steps_int, today, current_user_id)
+        )
+        info("Success", f"Successfully logged {steps_int} steps!")  # Success confirmation
+    except ValueError:
+        error("Error", "Please enter a valid number")  # Invalid input handling
+
+def Step_Tracker_Graph():
+    """Display a modern line graph of the user's steps for the last 7 days"""
+    # Query step entries for the current user from last 7 days
+    results = query_database("""
+        SELECT T_Date, SUM(T_Steps) as total_steps
+        FROM Tracking
+        WHERE userID = ? AND T_Date >= date('now', '-7 days')
+        GROUP BY T_Date
+        ORDER BY T_Date ASC
+    """, (current_user_id,))
+
+    if not results:
+        error("No Data", "No step entries found to plot.")
+        return
+
+    # Prepare data for plotting - ensure all 7 days are shown
+    today = datetime.date.today()
+    date_labels = [(today - datetime.timedelta(days=i)).strftime("%Y-%m-%d") for i in reversed(range(7))]
+    steps_dict = {row[0]: row[1] for row in results}
+    
+    dates = []
+    steps = []
+    display_dates = []
+    for d in date_labels:
+        dates.append(d)
+        steps.append(steps_dict.get(d, 0))  # Use 0 for days with no data
+        # Create user-friendly date labels
+        date_obj = datetime.datetime.strptime(d, "%Y-%m-%d")
+        display_dates.append(date_obj.strftime("%m/%d"))
+    
+    # Create modern matplotlib figure
+    plt.style.use('default')
+    fig, ax = plt.subplots(figsize=(12, 7))
+    fig.patch.set_facecolor('#ECF0F1')
+    ax.set_facecolor('#FFFFFF')
+    
+    # Plot with modern styling
+    line = ax.plot(display_dates, steps, marker='o', color=COLORS['primary'], 
+                   linewidth=3, markersize=10, markerfacecolor=COLORS['primary'],
+                   markeredgecolor='white', markeredgewidth=2)
+    
+    # Fill area under the curve
+    ax.fill_between(display_dates, steps, alpha=0.3, color=COLORS['primary'])
+    
+    # Styling
+    ax.set_title("Your Step Progress - Last 7 Days", fontsize=18, fontweight='bold', 
+                color=COLORS['text_dark'], pad=20)
+    ax.set_xlabel("Date", fontsize=14, color=COLORS['text_dark'])
+    ax.set_ylabel("Steps", fontsize=14, color=COLORS['text_dark'])
+    
+    # Grid styling
+    ax.grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
+    ax.set_axisbelow(True)
+    
+    # Customize ticks
+    ax.tick_params(colors=COLORS['text_dark'], labelsize=12)
+    
+    # Add value labels on points
+    for i, (date, step_count) in enumerate(zip(display_dates, steps)):
+        if step_count > 0:
+            ax.annotate(f'{step_count:,}', (i, step_count), 
+                       textcoords="offset points", xytext=(0,10), 
+                       ha='center', fontsize=10, color=COLORS['text_dark'],
+                       bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
+    
+    plt.xticks(rotation=0)
+    plt.tight_layout()
+    
+    # Show in a modern Tkinter window
+    graph_window = tk.Toplevel()
+    graph_window.title("TOKA Fitness - Step Tracker Analytics")
+    graph_window.configure(bg=COLORS['light'])
+    
+    # Add window icon and styling
+    canvas = FigureCanvasTkAgg(fig, master=graph_window)
+    canvas.draw()
+    canvas.get_tk_widget().pack(fill=tk.BOTH, expand=1, padx=10, pady=10)
