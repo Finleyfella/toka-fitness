@@ -1,0 +1,79 @@
+# Payment Functions - handle premium membership upgrades
+def show_payment():
+    """Display modern premium membership payment screen"""
+    payment_window = Window(app, title="Upgrade to Premium", width=500, height=600)
+    payment_window.bg = COLORS['light']
+    
+    # Header card
+    header_card = Box(payment_window, width="fill", align="top")
+    header_card.bg = COLORS['primary']
+    
+    Text(header_card, text="Premium Membership", size=20, color=COLORS['white'])
+    Text(header_card, text="Unlock all features and get the most out of TOKA Fitness", size=12, color=COLORS['white'])
+    
+    # Pricing card
+    pricing_card = Box(payment_window, width="fill", align="top")
+    pricing_card.bg = COLORS['white']
+    
+    Text(pricing_card, text="Special Offer", size=16, color=COLORS['primary'])
+    Text(pricing_card, text="£11.99/month", size=24, color=COLORS['primary'])
+    Text(pricing_card, text="50% off your first month!", size=14, color=COLORS['success'])
+    
+    # Features card
+    features_card = Box(payment_window, width="fill", align="top")
+    features_card.bg = COLORS['white']
+    
+    Text(features_card, text="Premium Features", size=16, color=COLORS['primary'])
+    features = [
+        "Personal Trainer Booking",
+        "Advanced Analytics & Graphs", 
+        "Custom Workout Plans",
+        "Social Community Features",
+        "Nutrition & Recipe Database",
+        "Priority Customer Support"
+    ]
+    
+    for feature in features:
+        Text(features_card, text=f"• {feature}", size=11, color=COLORS['text_dark'])
+    
+    # Payment form card
+    form_card = Box(payment_window, width="fill", align="top")
+    form_card.bg = COLORS['white']
+    
+    Text(form_card, text="Payment Details", size=16, color=COLORS['primary'])
+    
+    form = Box(form_card, layout="grid")
+    Text(form, text="Card Number:", grid=[0,0])
+    card_number = TextBox(form, grid=[1,0], width=25)
+    
+    Text(form, text="Expiry Date:", grid=[0,1])
+    expiry_date = TextBox(form, grid=[1,1], width=15)
+    
+    Text(form, text="CVV:", grid=[0,2])
+    cvv = TextBox(form, grid=[1,2], width=8)
+    
+    Text(form, text="Name on Card:", grid=[0,3])
+    card_name = TextBox(form, grid=[1,3], width=25)
+    
+    def process_payment():
+        """Process payment and upgrade user to premium"""
+        if all([card_number.value, expiry_date.value, cvv.value, card_name.value]):
+            execute_sql("UPDATE User SET U_Premium = TRUE WHERE userID = ?", (current_user_id,))
+            info("Success", "Payment processed! Welcome to Premium!")
+            payment_window.destroy()
+            show_premium_dashboard()
+        else:
+            error("Error", "Please fill all payment fields")
+    
+    # Action buttons
+    button_box = Box(form_card, width="fill", align="bottom")
+    
+    subscribe_btn = PushButton(button_box, text="Subscribe Now", command=process_payment, align="left", width=20)
+    subscribe_btn.bg = COLORS['success']
+    subscribe_btn.text_color = COLORS['white']
+    
+    cancel_btn = PushButton(button_box, text="Cancel", command=lambda: payment_window.destroy(), align="right")
+    cancel_btn.bg = COLORS['light']
+    cancel_btn.text_color = COLORS['text_dark']
+
+# Settings Functions - handle user preferences and accessibility
