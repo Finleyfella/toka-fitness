@@ -1,0 +1,64 @@
+def show_settings():
+    """Display modern user settings and accessibility options"""
+    settings_window = Window(app, title="Settings", width=500, height=600)
+    settings_window.bg = COLORS['light']
+
+    # Header card
+    header_card = Box(settings_window, width="fill", align="top")
+    header_card.bg = COLORS['white']
+    
+    Text(header_card, text="Settings", size=20, color=COLORS['primary'])
+    Text(header_card, text="Customize your TOKA Fitness experience", size=12, color=COLORS['text_light'])
+    
+    # Accessibility card
+    accessibility_card = Box(settings_window, width="fill", align="top")
+    accessibility_card.bg = COLORS['white']
+    
+    Text(accessibility_card, text="Accessibility Options", size=16, color=COLORS['primary'])
+
+    # Dark Mode toggle
+    dark_check = CheckBox(accessibility_card, text="Dark Mode")
+    
+    # Font Size slider
+    Text(accessibility_card, text="Font Size:", size=12)
+    font_size = Slider(accessibility_card, start=10, end=20)
+    
+    # Dyslexia Font toggle
+    dys_check = CheckBox(accessibility_card, text="Dyslexia-Friendly Font")
+    
+    # Colorblind Mode toggle
+    color_check = CheckBox(accessibility_card, text="Colorblind Mode")
+
+    # Load current settings from database
+    if current_user_id:
+        current_settings = query_database(
+            "SELECT U_DarkMode, U_FontSize, U_DyslexiaFont, U_ColorblindMode FROM User WHERE userID = ?",
+            (current_user_id,)
+        )
+        if current_settings:
+            settings_data = current_settings[0]
+            dark_check.value = settings_data[0]
+            font_size.value = settings_data[1]
+            dys_check.value = settings_data[2]
+            color_check.value = settings_data[3]
+
+    def save_settings():
+        """Save settings to database"""
+        if current_user_id:
+            execute_sql(
+                "UPDATE User SET U_DarkMode = ?, U_FontSize = ?, U_DyslexiaFont = ?, U_ColorblindMode = ? WHERE userID = ?",
+                (dark_check.value, font_size.value, dys_check.value, color_check.value, current_user_id)
+            )
+            info("Success", "Settings saved successfully!")
+            settings_window.destroy()
+
+    # Action buttons
+    button_box = Box(accessibility_card, width="fill", align="bottom")
+    
+    save_btn = PushButton(button_box, text="Save Settings", command=save_settings, align="left")
+    save_btn.bg = COLORS['success']
+    save_btn.text_color = COLORS['white']
+    
+    cancel_btn = PushButton(button_box, text="Cancel", command=lambda: settings_window.destroy(), align="right")
+    cancel_btn.bg = COLORS['light']
+    cancel_btn.text_color = COLORS['text_dark']
