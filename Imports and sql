@@ -1,0 +1,261 @@
+################################################################################################
+#                   PROGRAM NAME: TOKA FITNESS                                                     #
+#                   FIRST CREATED: 15/10/2025                                                  #
+#                   PROGRAMMER: FINLEY PRESTON (FP)                                               #
+#                                                                                              #
+################################################################################################
+#                   CHANGE LOG:
+#                   +--------------------------------------------------------------------------+
+#                   | 10/10/2025    V1       DATABASE/LOGIN/SIGNUP CREATED/CHANGE PASSWORD   FP    |
+#                   | 15/10/2025    V2       STEP TRACKER/SETTINGS/PREMIUM PAYMENT/DASHBAORD FP      
+#                   | FIXED GRID SYSTEM ISSUES                                                        |
+#                   +--------------------------------------------------------------------------+
+#
+#
+
+# TOKA FITNESS - Complete Fitness Application
+import sqlite3  # Database operations
+import os  # File system operations
+import bcrypt  # Password hashing for security
+import re  # Regular expressions for input validation
+from guizero import App, Window, PushButton, Text, Box, TextBox, Picture, info, error, CheckBox, Slider  # GUI framework
+import matplotlib.pyplot as plt  # Data visualization for graphs
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg  # Embed matplotlib in tkinter
+import tkinter as tk  # GUI toolkit
+from tkinter import ttk  # Themed tkinter widgets
+import random  # Generate random numbers for password reset codes
+import datetime  # Date and time handling
+import webbrowser # Allows image and url use
+
+# Global variables - store application state
+database_file = 'TOKA.db'  # SQLite database filename
+user_LoggedIn = None  # Track currently logged in user's email
+current_user_id = None  # Track currently logged in user's database ID
+dark_mode = False  # UI theme preference
+current_premium_tab_box = None  # Track current premium dashboard tab for switching
+
+# Modern Color Palette
+COLORS = {
+    'primary': '#D30000',      # Main red
+    'primary_light': '#FF4444', # Lighter red for hover
+    'primary_dark': '#B30000',  # Darker red
+    'secondary': '#2C3E50',     # Dark blue-grey
+    'accent': '#3498DB',        # Blue accent
+    'success': '#27AE60',       # Green
+    'warning': '#F39C12',       # Orange
+    'danger': '#E74C3C',        # Red
+    'light': '#ECF0F1',         # Light grey
+    'dark': '#34495E',          # Dark grey
+    'white': '#FFFFFF',
+    'text_dark': '#2C3E50',
+    'text_light': '#7F8C8D'
+}
+
+# Database Initialization
+def initialize_database():
+    """Initialize database with all required tables - creates the complete database structure"""
+    # Remove existing database file for clean start during development
+    if os.path.exists(database_file):
+        os.remove(database_file)
+
+    # Connect to SQLite database (creates new file)
+    conn = sqlite3.connect(database_file)
+    cursor = conn.cursor()
+
+    # User Table - stores all user account information and preferences
+    cursor.execute("""
+        CREATE TABLE User (
+            userID INTEGER PRIMARY KEY AUTOINCREMENT,  
+            U_Email TEXT UNIQUE NOT NULL,              
+            U_PW TEXT NOT NULL,                        
+            U_FirstName TEXT NOT NULL,                 
+            U_SecondName TEXT NOT NULL,                
+            U_Premium BOOLEAN DEFAULT FALSE,           
+            U_DOB TEXT,                                
+            U_CookieAgreement BOOLEAN DEFAULT FALSE,   
+            U_DarkMode BOOLEAN DEFAULT FALSE,          
+            U_FontSize INTEGER DEFAULT 12,             
+            U_DyslexiaFont BOOLEAN DEFAULT FALSE,      
+            U_ColorblindMode BOOLEAN DEFAULT FALSE     
+        )
+    """)
+
+    # Tracking Table - stores fitness and health tracking data
+    cursor.execute("""
+        CREATE TABLE Tracking (
+            TrackingID INTEGER PRIMARY KEY AUTOINCREMENT,  
+            T_Steps INTEGER,                               
+            T_Weight DECIMAL(5,2),                         
+            T_Heartrate INTEGER,                           
+            T_Time INTEGER,                                
+            T_Date TEXT NOT NULL,                          
+            userID INTEGER,                                
+            FOREIGN KEY(userID) REFERENCES User(userID)    
+        )
+    """)
+
+    # Booking Table - stores personal trainer booking information
+    cursor.execute("""
+        CREATE TABLE Booking (
+            BookingID INTEGER PRIMARY KEY AUTOINCREMENT,   
+            B_Date TEXT NOT NULL,                          
+            B_Time TEXT NOT NULL,                          
+            B_Type TEXT NOT NULL,                          
+            B_Calories INTEGER,                            
+            userID INTEGER,                                
+            TrainerID INTEGER,                             
+            FOREIGN KEY(userID) REFERENCES User(userID),   
+            FOREIGN KEY(TrainerID) REFERENCES Trainer(TrainerID)  
+        )
+    """)
+
+    # Trainer Table - stores personal trainer profiles and information
+    cursor.execute("""
+        CREATE TABLE Trainer (
+            TrainerID INTEGER PRIMARY KEY AUTOINCREMENT,   
+            Trainer_Name TEXT NOT NULL,                    
+            Trainer_Email TEXT,                            
+            Trainer_Gender TEXT,                           
+            Trainer_Specialty TEXT,                        
+            Trainer_Bio TEXT,                              
+            Trainer_Rating DECIMAL(3,2)                    
+        )
+    """)
+
+    # TrainerAvailability Table - stores available time slots for trainers
+    cursor.execute("""
+        CREATE TABLE TrainerAvailability (
+          AvailabilityID INTEGER PRIMARY KEY AUTOINCREMENT,  
+          TrainerID INTEGER,                                 
+           AvailableDate TEXT NOT NULL,                      
+           AvailableTime TEXT NOT NULL,                      
+           IsBooked BOOLEAN DEFAULT FALSE,                   
+           FOREIGN KEY(TrainerID) REFERENCES Trainer(TrainerID)  
+        )
+    """)
+
+    # Workout Planner Table - stores custom workout plans for users
+    cursor.execute("""
+        CREATE TABLE WorkoutPlan (
+            PlanID INTEGER PRIMARY KEY AUTOINCREMENT,     
+            userID INTEGER,                               
+            DayOfWeek TEXT NOT NULL,                      
+            ExerciseType TEXT NOT NULL,                   
+            ExerciseName TEXT NOT NULL,                   
+            Duration INTEGER,                             
+            FOREIGN KEY(userID) REFERENCES User(userID)   
+        )
+    """)
+
+    # Social Profiles Table - stores user social information for community features
+    cursor.execute("""
+        CREATE TABLE SocialProfile (
+            ProfileID INTEGER PRIMARY KEY AUTOINCREMENT,  
+            userID INTEGER UNIQUE,                        
+            Age INTEGER,                                  
+            FitnessType TEXT,                             
+            Hobbies TEXT,                                 
+            Bio TEXT,                                     
+            FOREIGN KEY(userID) REFERENCES User(userID)   
+        )
+    """)
+
+    # Recipes Table - stores healthy recipes and nutritional information
+    cursor.execute("""
+        CREATE TABLE Recipe (
+            RecipeID INTEGER PRIMARY KEY AUTOINCREMENT,   
+            RecipeName TEXT NOT NULL,                     
+            Ingredients TEXT NOT NULL,                    
+            Instructions TEXT NOT NULL,                   
+            Calories INTEGER,                             
+            PrepTime INTEGER,                             
+            IsVegetarian BOOLEAN,                         
+            Rating DECIMAL(3,2)                           
+        )
+    """)
+    
+    # Insert sample data
+    insert_sample_data(cursor)
+    conn.commit()
+    conn.close()
+
+def insert_sample_data(cursor):
+    """Insert sample data into all tables - populates database with test data for development"""
+    # Sample users with hashed passwords - test accounts for demonstration
+    test_users = [
+        ('john.doe@email.com', 'Password123!', 'John', 'Doe'),
+        ('sarah.smith@email.com', 'Password123!', 'Sarah', 'Smith'),
+        ('mike.johnson@email.com', 'Password123!', 'Mike', 'Johnson')
+    ]
+    
+    # Create each user account with securely hashed password
+    for email, password, firstname, surname in test_users:
+        # Hash password using bcrypt for security (never store plain text)
+        hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+        cursor.execute(
+            "INSERT INTO User (U_Email, U_PW, U_FirstName, U_SecondName) VALUES (?, ?, ?, ?)",
+            (email, hashed_pw.decode('utf-8'), firstname, surname)  # Store hashed password
+        )
+
+    # Sample trainers - fictional personal trainers with different specialties
+    trainers = [
+        ('Emma Wilson', 'emma.wilson@toka.com', 'Female', 'Cardio & HIIT', 'Certified personal trainer with 5 years experience in high-intensity training', 4.8),
+        ('James Brown', 'james.brown@toka.com', 'Male', 'Strength Training', 'Strength and conditioning specialist with powerlifting background', 4.9),
+        ('Lisa Garcia', 'lisa.garcia@toka.com', 'Female', 'Yoga & Pilates', 'Yoga instructor and nutritionist specializing in mind-body wellness', 4.7),
+        ('Marcus Johnson', 'marcus.johnson@toka.com', 'Male', 'CrossFit', 'CrossFit Level 2 trainer with competition experience', 4.6),
+        ('Sophie Chen', 'sophie.chen@toka.com', 'Female', 'Dance Fitness', 'Professional dancer turned fitness instructor', 4.8)
+    ]
+    
+    # Insert each trainer into the database
+    for name, email, gender, specialty, bio, rating in trainers:
+        cursor.execute(
+            "INSERT INTO Trainer (Trainer_Name, Trainer_Email, Trainer_Gender, Trainer_Specialty, Trainer_Bio, Trainer_Rating) VALUES (?, ?, ?, ?, ?, ?)",
+            (name, email, gender, specialty, bio, rating)
+        )
+
+    # Get all trainer IDs to create availability slots for each trainer
+    trainer_ids = cursor.execute("SELECT TrainerID FROM Trainer").fetchall()
+
+    # Create sample availability for trainers (next 7 days)
+    today = datetime.date.today()
+    time_slots = ["09:00", "11:00", "14:00", "16:00", "18:00"]  # Standard appointment times
+
+    # For each trainer, create availability slots for the next 7 days
+    for trainer_id, in trainer_ids:
+         for day in range(1, 8):  # Next 7 days
+             available_date = (today + datetime.timedelta(days=day)).strftime("%Y-%m-%d")
+             for time_slot in time_slots:
+               cursor.execute(             
+                    "INSERT INTO TrainerAvailability (TrainerID, AvailableDate, AvailableTime) VALUES (?, ?, ?)",
+                    (trainer_id, available_date, time_slot)
+               )
+
+    # Sample recipes - healthy meal options with nutritional information
+    recipes = [
+        ('Greek Yogurt Parfait', 'Greek yogurt, Granola, Mixed berries, Honey', 'Layer yogurt with granola and berries. Drizzle with honey.', 250, 5, True, 4.5),
+        ('Grilled Chicken Salad', 'Chicken breast, Mixed greens, Cherry tomatoes, Cucumber, Olive oil', 'Grill chicken and slice. Toss with vegetables and dressing.', 350, 15, False, 4.3),
+        ('Vegetable Stir Fry', 'Broccoli, Bell peppers, Carrots, Tofu, Soy sauce', 'Stir fry vegetables and tofu with soy sauce.', 300, 10, True, 4.6)
+    ]
+    
+    # Insert each recipe into the database
+    for name, ingredients, instructions, calories, preptime, veg, rating in recipes:
+        cursor.execute(
+            "INSERT INTO Recipe (RecipeName, Ingredients, Instructions, Calories, PrepTime, IsVegetarian, Rating) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (name, ingredients, instructions, calories, preptime, veg, rating)
+        )
+
+# Database Functions - utility functions for database operations
+def query_database(query, params=()):
+    """Execute a SELECT query and return results - for reading data from database"""
+    with sqlite3.connect(database_file) as conn:
+        cur = conn.cursor()
+        cur.execute(query, params)
+        return cur.fetchall()  # Return all rows from the query result
+
+def execute_sql(query, params=()):
+    """Execute an INSERT/UPDATE/DELETE query - for modifying data in database"""
+    with sqlite3.connect(database_file) as conn:
+        cur = conn.cursor()
+        cur.execute(query, params)
+        conn.commit()  # Save changes to database
+    return cur.lastrowid  # Return ID of newly inserted row (if any)
