@@ -1,0 +1,183 @@
+# Dashboard Functions - main application interface after login
+def show_dashboard(is_premium):
+    """Show appropriate dashboard based on user's premium status"""
+    app.hide()  # Hide login window
+    if is_premium:
+        show_premium_dashboard()  # Show premium features dashboard
+    else:
+        show_free_dashboard()     # Show free basic features dashboard
+
+def show_free_dashboard():
+    """Free user dashboard with limited features and upgrade prompts"""
+    free_dash = Window(app, title="TOKA Fitness - Free Dashboard", width=900, height=650)
+    free_dash.bg = COLORS['light']
+    
+    # Modern header
+    header = Box(free_dash, width="fill", align="top", height=80)
+    header.bg = COLORS['primary']
+    
+    Text(header, text="TOKA FITNESS", size=24, color=COLORS['white'])
+    Text(header, text="Free Membership", size=12, color=COLORS['white'])
+    
+    # Navigation buttons in header
+    nav_box = Box(header, width="fill", align="top")
+    nav_box.bg = COLORS['primary']
+    
+    settings_btn = PushButton(nav_box, text="Settings", command=show_settings, align="right")
+    settings_btn.bg = COLORS['light']
+    settings_btn.text_color = COLORS['text_dark']
+    
+    logout_btn = PushButton(nav_box, text="Logout", command=logout, align="right")
+    logout_btn.bg = COLORS['secondary']
+    logout_btn.text_color = COLORS['white']
+    
+    # Main content area
+    content = Box(free_dash, width="fill", align="top")
+    content.bg = COLORS['light']
+    
+    # Step Tracker Card
+    step_card = Box(content, width="fill", align="top")
+    step_card.bg = COLORS['white']
+    
+    Text(step_card, text="Step Tracker", size=16, color=COLORS['primary'])
+    Text(step_card, text="Track your daily steps", size=10, color=COLORS['text_light'])
+    
+    step_form = Box(step_card, layout="grid")
+    Text(step_form, text="Steps:", grid=[0,0])
+    steps_input = TextBox(step_form, grid=[1,0], width=15)
+    
+    log_btn = PushButton(step_form, text="Log Steps", command=lambda: log_steps(steps_input.value), grid=[2,0])
+    log_btn.bg = COLORS['success']
+    log_btn.text_color = COLORS['white']
+    
+    # Spacer
+    Text(content, text="", size=8)
+    
+    # Premium Upgrade Card
+    premium_card = Box(content, width="fill", align="top")
+    premium_card.bg = COLORS['primary']
+    
+    Text(premium_card, text="Upgrade to Premium", size=18, color=COLORS['white'])
+    Text(premium_card, text="Unlock all features including:", size=12, color=COLORS['white'])
+    Text(premium_card, text="• Personal Trainer Booking", size=11, color=COLORS['white'])
+    Text(premium_card, text="• Advanced Analytics", size=11, color=COLORS['white'])
+    Text(premium_card, text="• Workout Planning", size=11, color=COLORS['white'])
+    Text(premium_card, text="• Social Features", size=11, color=COLORS['white'])
+    
+    premium_btn = PushButton(premium_card, text="Go Premium - £11.99/month", command=show_payment, width=30)
+    premium_btn.bg = COLORS['accent']
+    premium_btn.text_color = COLORS['white']
+
+def show_premium_dashboard():
+    """Premium user dashboard with full feature access and modern tabbed interface"""
+    global premium_dash  # Store reference to premium dashboard window
+    premium_dash = Window(app, title="TOKA Fitness - Premium Dashboard", width=1200, height=800)
+    premium_dash.bg = COLORS['light']
+    
+    # Modern header
+    header = Box(premium_dash, width="fill", align="top", height=100)
+    header.bg = COLORS['primary']
+    
+    Text(header, text="TOKA FITNESS", size=28, color=COLORS['white'])
+    Text(header, text="Premium Membership", size=14, color=COLORS['white'])
+    
+    # Navigation buttons in header
+    nav_box = Box(header, width="fill", align="top")
+    nav_box.bg = COLORS['primary']
+    
+    settings_btn = PushButton(nav_box, text="Settings", command=show_settings, align="right")
+    settings_btn.bg = COLORS['light']
+    settings_btn.text_color = COLORS['text_dark']
+    
+    logout_btn = PushButton(nav_box, text="Logout", command=logout, align="right")
+    logout_btn.bg = COLORS['secondary']
+    logout_btn.text_color = COLORS['white']
+    
+    # Modern tab navigation
+    tab_container = Box(premium_dash, width="fill", align="top")
+    tab_container.bg = COLORS['white']
+    
+    tabs = [
+        ("Dashboard", "Dashboard"),
+        ("Step Tracker", "Step Tracker"), 
+        ("Workout Planner", "Workout Planner"),
+        ("Food & Recipes", "Food & Recipes (COMING SOON)"),
+        ("Book Classes", "Book Classes"),
+        ("Trainers", "Trainers"),
+        ("Social", "Social"),
+        ("Fitness Advice", "Fitness Advice")
+    ]
+    
+    # Create modern tab buttons
+    for tab_text, tab_name in tabs:
+        btn = PushButton(tab_container, text=tab_text, command=lambda t=tab_name: show_premium_tab(t), align="left")
+        btn.bg = COLORS['light']
+        btn.text_color = COLORS['text_dark']
+        btn.text_size = 10
+    
+    show_dashboard_tab(premium_dash)  # Show default dashboard tab
+
+def show_premium_tab(tab_name):
+    """Switch between different premium feature tabs"""
+    global current_premium_tab_box  # Track current tab for cleanup
+    if current_premium_tab_box is not None:
+        current_premium_tab_box.destroy()  # Remove current tab content
+        current_premium_tab_box = None
+
+    # Show appropriate tab content based on selection
+    if tab_name == "Dashboard":
+        current_premium_tab_box = show_dashboard_tab(premium_dash)
+    elif tab_name == "Fitness Advice":
+        current_premium_tab_box = show_fitness_advice(premium_dash)
+    elif tab_name == "Step Tracker":
+        current_premium_tab_box = show_step_tracker(premium_dash)
+    elif tab_name == "Trainers":
+        current_premium_tab_box = show_trainers_tab(premium_dash)
+    elif tab_name == "Social":
+        current_premium_tab_box = show_social_tab(premium_dash)
+
+def show_dashboard_tab(window):
+    """Display the main dashboard tab content with user overview"""
+    dashboard_box = Box(window, width="fill", align="top")
+    dashboard_box.bg = COLORS['light']
+    
+    # Welcome card
+    welcome_card = Box(dashboard_box, width="fill", align="top")
+    welcome_card.bg = COLORS['white']
+    
+    Text(welcome_card, text="Welcome to Your Dashboard", size=20, color=COLORS['primary'])
+    
+    # Get user info
+    user_info = query_database("SELECT U_FirstName FROM User WHERE userID = ?", (current_user_id,))
+    if user_info:
+        Text(welcome_card, text=f"Hello, {user_info[0][0]}!", size=14, color=COLORS['text_light'])
+    
+    # Spacer
+    Text(dashboard_box, text="", size=8)
+    
+    # Upcoming sessions card
+    sessions_card = Box(dashboard_box, width="fill", align="top")
+    sessions_card.bg = COLORS['white']
+    
+    Text(sessions_card, text="Your Upcoming Sessions", size=16, color=COLORS['primary'])
+    
+    # Query database for user's upcoming trainer bookings
+    bookings = query_database("""
+        SELECT B.B_Date, B.B_Time, T.Trainer_Name 
+        FROM Booking B 
+        JOIN Trainer T ON B.TrainerID = T.TrainerID 
+        WHERE B.userID = ? AND B.B_Date >= date('now')
+        ORDER BY B.B_Date, B.B_Time
+    """, (current_user_id,))
+    
+    # Display bookings or message if none
+    if bookings:
+        for date, time, trainer in bookings:
+            booking_item = Box(sessions_card, width="fill", align="top")
+            booking_item.bg = COLORS['light']
+            Text(booking_item, text=f"{date} at {time} - {trainer}", size=12, color=COLORS['text_dark'])
+    else:
+        Text(sessions_card, text="No upcoming sessions scheduled", size=12, color=COLORS['text_light'])
+        Text(sessions_card, text="Book a trainer to get started!", size=10, color=COLORS['text_light'])
+    
+    return dashboard_box
