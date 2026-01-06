@@ -1,0 +1,76 @@
+def show_user_profile_modal(user_id):
+    """Show detailed user profile in modal"""
+    user = query_database(
+        "SELECT U_FirstName, U_SecondName, U_Email FROM User WHERE userID = ?",
+        (user_id,)
+    )
+    
+    if not user:
+        return
+    
+    fname, sname, email = user[0]
+    
+    modal = Window(app, title=f"Profile - {fname} {sname}", width=400, height=350)
+    modal.bg = COLORS['light']
+    
+    content_card = Box(modal, width="fill", align="top")
+    content_card.bg = COLORS['white']
+    
+    Text(content_card, text=f"{fname} {sname}", size=16, color=COLORS['primary'])
+    Text(content_card, text=f"{email}", size=12, color=COLORS['text_light'])
+    
+    # Get social profile
+    profile = query_database(
+        "SELECT Age, FitnessType, Hobbies, Bio FROM SocialProfile WHERE userID = ?",
+        (user_id,)
+    )
+    
+    if profile:
+        age, ftype, hobbies, bio = profile[0]
+        Text(content_card, text=f"Age: {age}", size=12, color=COLORS['text_dark'])
+        Text(content_card, text=f"Fitness: {ftype}", size=12, color=COLORS['text_dark'])
+        Text(content_card, text=f"Hobbies: {hobbies}", size=12, color=COLORS['text_dark'])
+        Text(content_card, text=f"Bio: {bio}", size=11, color=COLORS['text_light'])
+    else:
+        Text(content_card, text="No additional profile information", size=12, color=COLORS['text_light'])
+    
+    close_btn = PushButton(content_card, text="Close", command=lambda: modal.destroy())
+    close_btn.bg = COLORS['light']
+    close_btn.text_color = COLORS['text_dark']
+
+def show_fitness_advice(window):
+    """Display fitness advice tab with modern cards"""
+    advice_box = Box(window, width="fill", align="top")
+    advice_box.bg = COLORS['light']
+    
+    # Header card
+    header_card = Box(advice_box, width="fill", align="top")
+    header_card.bg = COLORS['white']
+    
+    Text(header_card, text="Fitness Advice", size=20, color=COLORS['primary'])
+    Text(header_card, text="Expert tips to help you reach your goals", size=12, color=COLORS['text_light'])
+    
+    # Spacer
+    Text(advice_box, text="", size=8)
+    
+    # Advice items
+    advice_items = [
+        ("Stay Hydrated", "Drink at least 8 glasses of water daily to maintain optimal performance"),
+        ("Daily Activity", "Aim for at least 30 minutes of physical activity every day"),
+        ("Mix It Up", "Combine cardio, strength training, and flexibility exercises"),
+        ("Rest & Recovery", "Get 7-9 hours of quality sleep for proper muscle recovery"),
+        ("Track Progress", "Monitor your progress and set realistic, achievable goals"),
+        ("Professional Guidance", "Consult fitness professionals for personalized advice")
+    ]
+    
+    for title, description in advice_items:
+        advice_card = Box(advice_box, width="fill", align="top")
+        advice_card.bg = COLORS['white']
+        
+        Text(advice_card, text=title, size=14, color=COLORS['primary'])
+        Text(advice_card, text=description, size=11, color=COLORS['text_light'])
+        
+        # Spacer
+        Text(advice_box, text="", size=4)
+    
+    return advice_box
