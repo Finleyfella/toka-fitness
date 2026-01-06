@@ -1,0 +1,32 @@
+def show_cookie_agreement():
+    """Display cookie consent window as required by privacy regulations"""
+    cookie_window = Window(app, title="Cookie Agreement", width=500, height=350)
+    cookie_window.bg = COLORS['light']
+    
+    Text(cookie_window, text="Cookie Agreement", size=16, color=COLORS['primary'])
+    Text(cookie_window, text="We use cookies to enhance your experience and provide", size=11)
+    Text(cookie_window, text="personalized content. Your privacy is important to us.", size=11)
+    Text(cookie_window, text="", size=4)  # Spacer
+    Text(cookie_window, text="By clicking 'I Agree', you consent to our use of cookies", size=10, color=COLORS['text_light'])
+    Text(cookie_window, text="for analytics and personalization purposes.", size=10, color=COLORS['text_light'])
+    
+    def agree_cookies():
+        """User agrees to cookies - update database and proceed to dashboard"""
+        execute_sql("UPDATE User SET U_CookieAgreement = TRUE WHERE userID = ?", (current_user_id,))
+        cookie_window.destroy()
+        show_dashboard(False)  # Show free dashboard (user is not premium yet)
+    
+    def disagree_cookies():
+        """User disagrees to cookies - return to login screen"""
+        cookie_window.destroy()
+        app.show()  # Show main login app
+    
+    # Button container
+    button_box = Box(cookie_window, width="fill", align="bottom")
+    agree_btn = PushButton(button_box, text="I Agree", command=agree_cookies, align="left")
+    agree_btn.bg = COLORS['success']
+    agree_btn.text_color = COLORS['white']
+    
+    disagree_btn = PushButton(button_box, text="I Disagree", command=disagree_cookies, align="right")
+    disagree_btn.bg = COLORS['light']
+    disagree_btn.text_color = COLORS['text_dark
