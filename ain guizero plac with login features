@@ -1,0 +1,256 @@
+def Open_Signup():
+    """Switch to signup window from login"""
+    sign_window.show()
+    app.hide()
+
+def BackToLogin():
+    """Return to login window from signup"""
+    sign_window.hide()
+    app.show()
+
+def logout():
+    """Handle user logout - reset session variables"""
+    global user_LoggedIn, current_user_id
+    user_LoggedIn = None
+    current_user_id = None
+    app.show()  # Return to login screen
+
+# Forgotten Password Function - handle password reset process
+def ForgottenMenu():
+    """Display modern password reset interface"""
+    reset_window = Window(app, title="Reset Password", width=500, height=500)
+    reset_window.bg = COLORS['light']
+    
+    # Header card
+    header_card = Box(reset_window, width="fill", align="top")
+    header_card.bg = COLORS['white']
+    
+    Text(header_card, text="Reset Your Password", size=18, color=COLORS['primary'])
+    Text(header_card, text="Enter your email to receive a reset code", size=12, color=COLORS['text_light'])
+    
+    # Form card
+    form_card = Box(reset_window, width="fill", align="top")
+    form_card.bg = COLORS['white']
+    
+    form = Box(form_card, layout="grid")
+    Text(form, text="Email:", grid=[0,0])
+    reset_email = TextBox(form, grid=[1,0], width=30)
+    
+    error_text = Text(reset_window, text="", size=10, color=COLORS['danger'])
+    reset_code = None
+    
+    def send_reset_code():
+        nonlocal reset_code
+        email = reset_email.value.strip()
+        
+        if not email:
+            error_text.value = "Please enter your email"
+            return
+            
+        user_exists = query_database("SELECT userID FROM User WHERE U_Email = ?", (email,))
+        if not user_exists:
+            error_text.value = "Email not found"
+            return
+            
+        reset_code = str(random.randint(100000, 999999))
+        info("Reset Code", f"Your reset code is: {reset_code}")
+        
+    def reset_password():
+        email = reset_email.value.strip()
+        code_input = reset_code_input.value
+        new_password = new_pw_input.value
+        confirm_password = confirm_pw_input.value
+        
+        if not all([email, code_input, new_password, confirm_password]):
+            error_text.value = "Please fill all fields"
+            return
+            
+        if code_input != reset_code:
+            error_text.value = "Invalid reset code"
+            return
+            
+        if new_password != confirm_password:
+            error_text.value = "Passwords do not match"
+            return
+            
+        is_valid, error_msg = validate_
+        is_valid, error_msg = validate_password(new_password)
+        if not is_valid:
+            error_text.value = error_msg
+            return
+            
+        hashed_pw = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
+        execute_sql("UPDATE User SET U_PW = ? WHERE U_Email = ?", (hashed_pw.decode('utf-8'), email))
+        
+        info("Success", "Password reset successfully!")
+        reset_window.destroy()
+    
+    # Send reset code button
+    send_btn = PushButton(form, text="Send Reset Code", command=send_reset_code, grid=[2,0])
+    send_btn.bg = COLORS['accent']
+    send_btn.text_color = COLORS['white']
+    
+    # Reset code input
+    Text(form, text="Reset Code:", grid=[0,1])
+    reset_code_input = TextBox(form, grid=[1,1], width=15)
+    
+    # New password fields
+    Text(form, text="New Password:", grid=[0,2])
+    new_pw_input = TextBox(form, grid=[1,2], width=30, hide_text=True)
+    
+    Text(form, text="Confirm Password:", grid=[0,3])
+    confirm_pw_input = TextBox(form, grid=[1,3], width=30, hide_text=True)
+    
+    # Action buttons
+    button_box = Box(form_card, width="fill", align="bottom")
+    
+    reset_btn = PushButton(button_box, text="Reset Password", command=reset_password, align="left")
+    reset_btn.bg = COLORS['success']
+    reset_btn.text_color = COLORS['white']
+    
+    cancel_btn = PushButton(button_box, text="Cancel", command=lambda: reset_window.destroy(), align="right")
+    cancel_btn.bg = COLORS['light']
+    cancel_btn.text_color = COLORS['text_dark']
+
+# Initialize GUI - create the main application interface
+def create_gui():
+    """Create the modern main application GUI with login and signup windows"""
+    global app, login_email, login_pw, AppErrors, sign_window
+    global sign_txtbox2, sign_txtbox3, sign_txtbox4, sign_txtbox5, sign_txtbox6, SignErrors
+    
+    # Modern Login Window - main application entry point
+    app = App(title="TOKA Fitness - Login", width=500, height=600, bg=COLORS['light'])
+    
+    # Header card with branding
+    header_card = Box(app, width="fill", align="top")
+    header_card.bg = COLORS['primary']
+    
+    Text(header_card, text="TOKA FITNESS", size=28, color=COLORS['white'])
+    Text(header_card, text="Your Personal Fitness Journey Starts Here", size=12, color=COLORS['white'])
+    
+    # Spacer
+    Text(app, text="", size=8)
+    
+    # Login form card
+    login_card = Box(app, width="fill", align="top")
+    login_card.bg = COLORS['white']
+    
+    Text(login_card, text="Sign In to Your Account", size=18, color=COLORS['primary'])
+    Text(login_card, text="Enter your credentials to continue", size=11, color=COLORS['text_light'])
+    
+    # Login form
+    login_box = Box(login_card, layout="grid")
+    Text(login_box, text="Email:", grid=[0,0], align="left")
+    login_email = TextBox(login_box, grid=[1,0], width=35)
+    
+    Text(login_box, text="Password:", grid=[0,1], align="left")
+    login_pw = TextBox(login_box, grid=[1,1], width=35, hide_text=True)
+    
+    # Error display
+    AppErrors = Text(login_card, text="", size=11, color=COLORS['danger'])
+    
+    # Action buttons
+    button_container = Box(login_card, width="fill", align="top")
+    
+    login_button = PushButton(button_container, text="Sign In", command=login_user, width=25)
+    login_button.bg = COLORS['primary']
+    login_button.text_color = COLORS['white']
+    
+    # Spacer
+    Text(app, text="", size=6)
+    
+    # Additional options card
+    options_card = Box(app, width="fill", align="top")
+    options_card.bg = COLORS['white']
+    
+    Text(options_card, text="New to TOKA Fitness?", size=12, color=COLORS['text_dark'])
+    
+    options_buttons = Box(options_card, width="fill", align="top")
+    
+    signup_btn = PushButton(options_buttons, text="Create Account", command=Open_Signup, align="left", width=20)
+    signup_btn.bg = COLORS['success']
+    signup_btn.text_color = COLORS['white']
+    
+    forgot_btn = PushButton(options_buttons, text="Forgot Password?", command=ForgottenMenu, align="right", width=20)
+    forgot_btn.bg = COLORS['light']
+    forgot_btn.text_color = COLORS['text_dark']
+    
+    # Modern Sign Up Window
+    sign_window = Window(app, title="Create Account - TOKA Fitness", width=600, height=700, bg=COLORS['light'])
+    
+    # Header card
+    signup_header = Box(sign_window, width="fill", align="top")
+    signup_header.bg = COLORS['success']
+    
+    Text(signup_header, text="Join TOKA Fitness", size=24, color=COLORS['white'])
+    Text(signup_header, text="Start your fitness journey today", size=12, color=COLORS['white'])
+    
+    # Spacer
+    Text(sign_window, text="", size=8)
+    
+    # Sign up form card
+    signup_card = Box(sign_window, width="fill", align="top")
+    signup_card.bg = COLORS['white']
+    
+    Text(signup_card, text="Create Your Account", size=18, color=COLORS['primary'])
+    Text(signup_card, text="Fill in your details to get started", size=11, color=COLORS['text_light'])
+    
+    # Sign up form
+    sign_box = Box(signup_card, layout="grid")
+    
+    Text(sign_box, text="First Name:", grid=[0,0])
+    sign_txtbox4 = TextBox(sign_box, grid=[1,0], width=30)
+    
+    Text(sign_box, text="Surname:", grid=[0,1])
+    sign_txtbox5 = TextBox(sign_box, grid=[1,1], width=30)
+    
+    Text(sign_box, text="Email:", grid=[0,2])
+    sign_txtbox6 = TextBox(sign_box, grid=[1,2], width=30)
+    
+    Text(sign_box, text="Password:", grid=[0,3])
+    sign_txtbox2 = TextBox(sign_box, grid=[1,3], width=30, hide_text=True)
+    
+    Text(sign_box, text="Confirm Password:", grid=[0,4])
+    sign_txtbox3 = TextBox(sign_box, grid=[1,4], width=30, hide_text=True)
+    
+    # Error display
+    SignErrors = Text(signup_card, text="", size=11, color=COLORS['danger'])
+    
+    # Password requirements info
+    requirements_card = Box(sign_window, width="fill", align="top")
+    requirements_card.bg = COLORS['white']
+    
+    Text(requirements_card, text="Password Requirements:", size=12, color=COLORS['primary'])
+    requirements = [
+        "• At least 8 characters long",
+        "• Contains uppercase and lowercase letters", 
+        "• Contains at least one number",
+        "• Contains at least one special character"
+    ]
+    for req in requirements:
+        Text(requirements_card, text=req, size=10, color=COLORS['text_light'])
+    
+    # Action buttons
+    signup_buttons = Box(signup_card, width="fill", align="bottom")
+    
+    create_btn = PushButton(signup_buttons, text="Create Account", command=create_account, align="left", width=20)
+    create_btn.bg = COLORS['success']
+    create_btn.text_color = COLORS['white']
+    
+    back_btn = PushButton(signup_buttons, text="Back to Login", command=BackToLogin, align="right", width=20)
+    back_btn.bg = COLORS['light']
+    back_btn.text_color = COLORS['text_dark']
+    
+    sign_window.hide()  # Start with signup window hidden
+
+# Main Execution - application entry point
+if __name__ == "__main__":
+    print("🚀 Initializing TOKA Fitness...")
+    print("📊 Setting up database...")
+    initialize_database()  # Initialize database and sample data
+    print("✅ Database ready!")
+    print("🎨 Creating modern interface...")
+    create_gui()    # Create the user interface
+    print("🏃‍♂️ TOKA Fitness is ready to go!")
+    app.display()   # Start the GUI event loop
+
