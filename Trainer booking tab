@@ -1,0 +1,232 @@
+def show_trainers_tab(window):
+    """Display the trainers tab with modern card-based layout"""
+    trainers_box = Box(window, width="fill", align="top")
+    trainers_box.bg = COLORS['light']
+    
+    # Header
+    header_card = Box(trainers_box, width="fill", align="top")
+    header_card.bg = COLORS['white']
+    
+    Text(header_card, text="Personal Trainers", size=20, color=COLORS['primary'])
+    Text(header_card, text="Choose from our certified fitness professionals", size=12, color=COLORS['text_light'])
+    
+    # Spacer
+    Text(trainers_box, text="", size=8)
+
+    # Query all trainers from database
+    trainers = query_database("SELECT TrainerID, Trainer_Name, Trainer_Specialty, Trainer_Rating, Trainer_Bio FROM Trainer", ())
+    
+    print(f"Found {len(trainers)} trainers in database")  # Debug print
+    
+    if not trainers:
+        # No trainers found - show message
+        no_trainers_card = Box(trainers_box, width="fill", align="top")
+        no_trainers_card.bg = COLORS['white']
+        Text(no_trainers_card, text="No trainers available", size=16, color=COLORS['danger'])
+        Text(no_trainers_card, text="Please check back later", size=12, color=COLORS['text_light'])
+        return trainers_box
+
+    # Create trainer cards
+    for idx, (trainer_id, trainer_name, specialty, rating, bio) in enumerate(trainers):
+        # Create trainer card
+        trainer_card = Box(trainers_box, width="fill", align="top")
+        trainer_card.bg = COLORS['white']
+        
+        # Trainer info
+        Text(trainer_card, text=f"{trainer_name}", size=16, color=COLORS['primary'])
+        Text(trainer_card, text=f"Specialty: {specialty}", size=12, color=COLORS['text_dark'])
+        Text(trainer_card, text=f"Rating: {rating}/5.0", size=11, color=COLORS['accent'])
+        
+        # Bio (truncated)
+        bio_short = bio[:80] + "..." if len(bio) > 80 else bio
+        Text(trainer_card, text=bio_short, size=10, color=COLORS['text_light'])
+        
+        # Buttons
+        button_box = Box(trainer_card, width="fill", align="top")
+        
+        book_btn = PushButton(button_box, text="Book Session", 
+                           command=lambda tid=trainer_id, name=trainer_name: show_booking_window(tid, name), 
+                           align="left", width=15)
+        book_btn.bg = COLORS['success']
+        book_btn.text_color = COLORS['white']
+        
+        details_btn = PushButton(button_box, text="View Details", 
+                           command=lambda tid=trainer_id: show_trainer_details_modal(tid), 
+                           align="right", width=15)
+        details_btn.bg = COLORS['accent']
+        details_btn.text_color = COLORS['white']
+        
+        # Spacer between trainer cards
+        Text(trainers_box, text="", size=4)
+
+    return trainers_box
+
+def show_trainer_details_modal(trainer_id):
+    """Show detailed trainer information in a modal window"""
+    # Get detailed trainer information from database
+    info_result = query_database(
+        "SELECT Trainer_Name, Trainer_Email, Trainer_Gender, Trainer_Specialty, Trainer_Bio, Trainer_Rating FROM Trainer WHERE TrainerID = ?",
+        (trainer_id,)
+    )
+    
+    if not info_result:
+        error("Error", "Trainer not found")
+        return
+    
+    name, email, gender, specialty, bio, rating = info_result[0]
+    
+    # Create modal window
+    modal = Window(app, title=f"Trainer Details - {name}", width=500, height=400)
+    modal.bg = COLORS['light']
+    
+    # Content card
+    content_card = Box(modal, width="fill", align="top")
+    content_card.bg = COLORS['white']
+    
+    Text(content_card, text=f"{name}", size=18, color=COLORS['primary'])
+    Text(content_card, text="", size=4)  # Spacer
+    
+    Text(content_card, text=f"Specialty: {specialty}", size=14, color=COLORS['text_dark'])
+    Text(content_card, text=f"Rating: {rating}/5.0", size=12, color=COLORS['accent'])
+    Text(content_card, text=f"Gender: {gender}", size=12, color=COLORS['text_dark'])
+    Text(content_card, text=f"Contact: {email}", size=11, color=COLORS['text_light'])
+    
+    Text(content_card, text="", size=6)  # Spacer
+    Text(content_card, text="About:", size=12, color=COLORS['text_dark'])
+    Text(content_card, text=bio, size=11, color=COLORS['text_light'])
+    
+    # Action buttons
+    button_box = Box(content_card, width="fill", align="bottom")
+    
+    book_btn = PushButton(button_box, text="Book Session", 
+                       command=lambda: [modal.destroy(), show_booking_window(trainer_id, name)], 
+                       align="left")
+    book_btn.bg = COLORS['success']
+    book_btn.text_color = COLORS['white']
+    
+    close_btn = PushButton(button_box, text="Close", command=lambda: modal.destroy(), align="right")
+    close_btn.bg = COLORS['light']
+    close_btn.text_color = COLORS['text_dark']
+
+def show_booking_window(trainer_id, trainer_name):
+    """Display modern booking interface for a specific trainer"""
+    booking_win = Window(app, title=f"Book {trainer_name}", width=700, height=600)
+    booking_win.bg = COLORS['light']
+    
+    # Header card
+    header_card = Box(booking_win, width="fill", align="top")
+    header_card.bg = COLORS['white']
+    
+    Text(header_card, text=f"Book {trainer_name}", size=18, color=COLORS['primary'])
+    Text(header_card, text="Select your preferred date and time", size=12, color=COLORS['text_light'])
+    
+    # Date selection card
+    date_card = Box(booking_win, width="fill", align="top")
+    date_card.bg = COLORS['white']
+    
+    Text(date_card, text="Available Dates", size=14, color=COLORS['primary'])
+    
+    date_grid = Box(date_card, layout="grid")
+    
+    # Create date buttons for next 7 days from today
+    today = datetime.date.today()
+    
+    def show_time_slots(selected_date):
+        """Display available time slots for the selected date"""
+        # Clear previous time slots
+        for widget in time_card.children[:]:
+            widget.destroy()
+        
+        Text(time_card, text="Available Times", size=14, color=COLORS['primary'])
+        Text(time_card, text=f"Times for {selected_date}", size=11, color=COLORS['text_light'])
+        
+        # Get available time slots
+        slots = query_database("""
+            SELECT AvailabilityID, AvailableTime, IsBooked 
+            FROM TrainerAvailability 
+            WHERE TrainerID = ? AND AvailableDate = ? AND IsBooked = 0
+            ORDER BY AvailableTime
+        """, (trainer_id, selected_date))
+        
+        if not slots:
+            Text(time_card, text="No available slots for this date", size=12, color=COLORS['danger'])
+            return
+        
+        time_grid = Box(time_card, layout="grid")
+        
+        # Create time slot buttons
+        for idx, (avail_id, time, is_booked) in enumerate(slots):
+            btn = PushButton(
+                time_grid, 
+                text=f"{time}", 
+                command=lambda aid=avail_id, d=selected_date, t=time: book_time_slot(aid, d, t),
+                grid=[idx % 3, idx // 3]
+            )
+            btn.bg = COLORS['success']
+            btn.text_color = COLORS['white']
+    
+    def book_time_slot(avail_id, date, time):
+        """Handle the booking process"""
+        # Check for existing booking
+        existing_booking = query_database(
+            "SELECT 1 FROM Booking WHERE userID = ? AND B_Date = ? AND B_Time = ?",
+            (current_user_id, date, time)
+        )
+        
+        if existing_booking:
+            error("Already Booked", "You already have a booking at this time.")
+            return
+        
+        try:
+            # Create booking
+            execute_sql(
+                "INSERT INTO Booking (B_Date, B_Time, B_Type, userID, TrainerID) VALUES (?, ?, ?, ?, ?)",
+                (date, time, "Personal Training", current_user_id, trainer_id)
+            )
+            
+            # Mark slot as booked
+            execute_sql(
+                "UPDATE TrainerAvailability SET IsBooked = 1 WHERE AvailabilityID = ?",
+                (avail_id,)
+            )
+            
+            info("Success", f"Successfully booked {trainer_name} on {date} at {time}!")
+            booking_win.destroy()
+            
+        except Exception as e:
+            error("Error", f"Failed to book session: {str(e)}")
+    
+    # Create date buttons
+    for day in range(7):
+        current_date = today + datetime.timedelta(days=day)
+        date_str = current_date.strftime("%Y-%m-%d")
+        display_str = current_date.strftime("%a\n%d %b")
+        
+        # Check availability
+        has_slots = query_database("""
+            SELECT 1 FROM TrainerAvailability 
+            WHERE TrainerID = ? AND AvailableDate = ? AND IsBooked = 0
+            LIMIT 1
+        """, (trainer_id, date_str))
+        
+        btn = PushButton(
+            date_grid, 
+            text=display_str, 
+            command=lambda d=date_str: show_time_slots(d) if has_slots else None,
+            grid=[day, 0],
+            width=12,
+            height=3
+        )
+        
+        if has_slots:
+            btn.bg = COLORS['accent']
+            btn.text_color = COLORS['white']
+        else:
+            btn.bg = COLORS['light']
+            btn.text_color = COLORS['text_light']
+            btn.enabled = False
+    
+    # Time slots card (initially empty)
+    time_card = Box(booking_win, width="fill", align="top")
+    time_card.bg = COLORS['white']
+    Text(time_card, text="Select a date above to see available times", size=12, color=COLORS['text_light'])
