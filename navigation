@@ -1,0 +1,31 @@
+def Open_Signup():
+    """Switch to signup window from login"""
+    sign_window.show()
+    app.hide()
+
+def BackToLogin():
+    """Return to login window from signup"""
+    sign_window.hide()
+    app.show()
+
+def logout():
+    """Handle user logout - reset session variables"""
+    global user_LoggedIn, current_user_id
+    user_LoggedIn = None
+    current_user_id = None
+    app.show()  # Return to login screen
+
+
+
+
+# Main Execution - application entry point
+if __name__ == "__main__":
+    print("🚀 Initializing TOKA Fitness...")
+    print("📊 Setting up database...")
+    initialize_database()  # Initialize database and sample data
+    print("✅ Database ready!")
+    print("🎨 Creating modern interface...")
+    create_gui()    # Create the user interface
+    print("🏃‍♂️ TOKA Fitness is ready to go!")
+    app.display()   # Start the GUI event loop
+
