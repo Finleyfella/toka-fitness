@@ -1,0 +1,46 @@
+# Authentication Functions - handle user login and account creation
+def login_user():
+    """Handle user login process - validate credentials and set session"""
+    global user_LoggedIn, current_user_id  # Access global session variables
+    email = login_email.value.strip()  # Get email from login form
+    password = login_pw.value  # Get password from login form
+
+    # Basic validation - check fields aren't empty
+    if not email or not password:
+        AppErrors.value = "Please fill in all fields"
+        return
+
+    # Validate email format
+    is_valid, error_msg = validate_email_format(email)
+    if not is_valid:
+        AppErrors.value = error_msg
+        return
+
+    # Query database for user with this email
+    users = query_database("SELECT userID, U_PW, U_Premium FROM User WHERE U_Email = ?", (email,))
+    
+    # Check if user exists
+    if not users:
+        AppErrors.value = "Invalid email or password"
+        return
+
+    # Extract user data from query result
+    user_id, stored_hash, premium = users[0]
+    
+    try:
+        # Verify password against stored hash using bcrypt
+        if bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8')):
+            # Login successful - set global session variables
+            user_LoggedIn = email
+            current_user_id = user_id
+            
+            # Check if user has agreed to cookies (GDPR compliance)
+            cookie_agreed = query_database("SELECT U_CookieAgreement FROM User WHERE userID = ?", (user_id,))[0][0]
+            if not cookie_agreed:
+                show_cookie_agreement()  # Show cookie agreement if not agreed
+            else:
+                show_dashboard(premium)  # Show appropriate dashboard based on premium status
+        else:
+            AppErrors.value = "Invalid email or password"  # Password doesn't match
+    except Exception as e:
+        AppErrors.value = "Login error. Please try again."  # General error handling
