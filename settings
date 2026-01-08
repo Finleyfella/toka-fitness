@@ -1,7 +1,12 @@
+
 def show_settings():
+
+    #Used to comPly with WCAG
     """Display modern user settings and accessibility options"""
     settings_window = Window(app, title="Settings", width=500, height=600)
     settings_window.bg = COLORS['light']
+
+
 
     # Header card
     header_card = Box(settings_window, width="fill", align="top")
