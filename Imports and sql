@@ -1,31 +1,4 @@
-################################################################################################
-#                   PROGRAM NAME: TOKA FITNESS                                                     #
-#                   FIRST CREATED: 15/10/2025                                                  #
-#                   PROGRAMMER: FINLEY PRESTON (FP)                                               #
-#                                                                                              #
-################################################################################################
-#                   CHANGE LOG:
-#                   +--------------------------------------------------------------------------+
-#                   | 10/10/2025    V1       DATABASE/LOGIN/SIGNUP CREATED/CHANGE PASSWORD   FP    |
-#                   | 15/10/2025    V2       STEP TRACKER/SETTINGS/PREMIUM PAYMENT/DASHBAORD FP      
-#                   | FIXED GRID SYSTEM ISSUES                                                        |
-#                   +--------------------------------------------------------------------------+
-#
-#
 
-# TOKA FITNESS - Complete Fitness Application
-import sqlite3  # Database operations
-import os  # File system operations
-import bcrypt  # Password hashing for security
-import re  # Regular expressions for input validation
-from guizero import App, Window, PushButton, Text, Box, TextBox, Picture, info, error, CheckBox, Slider  # GUI framework
-import matplotlib.pyplot as plt  # Data visualization for graphs
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg  # Embed matplotlib in tkinter
-import tkinter as tk  # GUI toolkit
-from tkinter import ttk  # Themed tkinter widgets
-import random  # Generate random numbers for password reset codes
-import datetime  # Date and time handling
-import webbrowser # Allows image and url use
 
 # Global variables - store application state
 database_file = 'TOKA.db'  # SQLite database filename
