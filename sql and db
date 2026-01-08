@@ -218,9 +218,9 @@ def insert_sample_data(cursor):
         )
 
 # Database Functions - utility functions for database operations
-def query_database(query, params=()):
+def query_database(query, params=()): 
     """Execute a SELECT query and return results - for reading data from database"""
-    with sqlite3.connect(database_file) as conn:
+    with sqlite3.connect(database_file) as conn: # parameterised sql to comply with GDPR
         cur = conn.cursor()
         cur.execute(query, params)
         return cur.fetchall()  # Return all rows from the query result
@@ -230,5 +230,5 @@ def execute_sql(query, params=()):
     with sqlite3.connect(database_file) as conn:
         cur = conn.cursor()
         cur.execute(query, params)
-        conn.commit()  # Save changes to database
+        conn.commit()  # Save changes to database # parameterised sql to comply with GDPR
     return cur.lastrowid  # Return ID of newly inserted row (if any)
